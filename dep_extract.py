@@ -122,7 +122,8 @@ EN_STOP_TOKENS = {"few", "little", "many", "much",
                   "other", "such", "that", "it",
                   "thing",
                   "not",
-                  "be", "was", "have", "has", "had", "may"}
+                  "be", "was", "have", "has", "had", "may",
+                  "'s"}
 
 
 def en_is_content_token(tok) -> bool:

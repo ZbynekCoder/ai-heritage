@@ -1,7 +1,10 @@
 import json
 
-INPUT = "../results/results_with_keywords.jsonl"
-OUTPUT = "../results/keywords_only.jsonl"
+# INPUT = "../results/results_with_keywords.jsonl"
+# OUTPUT = "../results/keywords_only.jsonl"
+
+INPUT = "../results/dep_results.jsonl"
+OUTPUT = "../results/dep_results_keywords_only.jsonl"
 
 with open(INPUT, "r", encoding="utf-8") as fin, open(OUTPUT, "w", encoding="utf-8") as fout:
     for line in fin:

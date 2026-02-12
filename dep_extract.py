@@ -112,33 +112,6 @@ NOMINAL_DEPRELS = {
 }
 CONJ_DEPREL = "conj"
 
-
-def is_nominalised_verb(tok) -> bool:
-    """
-    Nominalised verb as syntactic phenomenon:
-    VERB in nominal argument slots (plus conj of such head).
-    """
-    if tok.pos_ != "VERB":
-        return False
-
-    # Directly in nominal argument position
-    if tok.dep_ in NOMINAL_DEPRELS:
-        return True
-
-    # Conj verb where head is a nominalised verb
-    if tok.dep_ == CONJ_DEPREL and tok.head is not None:
-        head = tok.head
-        if head is not None and head.pos_ == "VERB" and head.dep_ in NOMINAL_DEPRELS:
-            return True
-
-    # Mild fallback: explicit gerund morphology in nominal slot (English)
-    morph = tok.morph.to_dict() if hasattr(tok, "morph") else {}
-    if morph.get("VerbForm") == "Ger" and tok.dep_ in NOMINAL_DEPRELS:
-        return True
-
-    return False
-
-
 # ---------------- English-only filtering (3-rule combo) ----------------
 
 EN_DROP_POS = {"DET", "PRON", "NUM", "AUX", "ADP", "SCONJ", "CCONJ", "PART"}
@@ -172,10 +145,9 @@ def en_is_content_token(tok) -> bool:
     return True
 
 
-def extract_en(doc) -> Tuple[List[str], List[str], List[str]]:
+def extract_en(doc) -> Tuple[List[str], List[str]]:
     nouns: List[str] = []
     adjs: List[str] = []
-    nom_verbs: List[str] = []
 
     for tok in doc:
         if not en_is_content_token(tok):
@@ -189,36 +161,25 @@ def extract_en(doc) -> Tuple[List[str], List[str], List[str]]:
             if tok.dep_ in EN_KEEP_ADJ_DEPS:
                 adjs.append(tok.text)
 
-        if is_nominalised_verb(tok):
-            nom_verbs.append(tok.text)
-
-    return uniq_keep_order(nouns), uniq_keep_order(adjs), uniq_keep_order(nom_verbs)
+    return uniq_keep_order(nouns), uniq_keep_order(adjs)
 
 
 # ---------------- Chinese extraction (no extra filtering) ----------------
 
-def extract_zh(doc) -> Tuple[List[str], List[str], List[str]]:
+def extract_zh(doc) -> List[str]:
     """
     Keep it simple (no additional filtering), same as your original logic.
     """
-    nouns: List[str] = []
-    adjs: List[str] = []
-    nom_verbs: List[str] = []
+    keywords: List[str] = []
 
     for tok in doc:
         if tok.is_space or tok.is_punct:
             continue
 
-        if tok.pos_ in ("NOUN", "PROPN"):
-            nouns.append(tok.text)
+        if tok.pos_ in ("NOUN", "PROPN", "ADJ"):
+            keywords.append(tok.text)
 
-        if tok.pos_ == "ADJ":
-            adjs.append(tok.text)
-
-        if is_nominalised_verb(tok):
-            nom_verbs.append(tok.text)
-
-    return nouns, adjs, nom_verbs
+    return keywords
 
 
 # ---------------- Main ----------------
@@ -251,7 +212,6 @@ def main():
         if not text:
             r["nouns"] = []
             r["adjectives"] = []
-            r["nominalized_verbs"] = []
             r["keywords"] = []
             continue
 
@@ -259,21 +219,16 @@ def main():
             if nlp_en is None:
                 nlp_en = load_spacy("en")
             doc = nlp_en(text)
-            nouns, adjs, nom_verbs = extract_en(doc)
+            nouns, adjs = extract_en(doc)
+            r["nouns"] = nouns
+            r["adjectives"] = adjs
+            r["keywords"] = uniq_keep_order(nouns + adjs)
         else:
             if nlp_zh is None:
                 nlp_zh = load_spacy("zh")
             doc = nlp_zh(text)
-            nouns, adjs, nom_verbs = extract_zh(doc)
-
-        r["nouns"] = nouns
-        r["adjectives"] = adjs
-        r["nominalized_verbs"] = nom_verbs
-
-        if lang == "zh":
-            r["keywords"] = nouns + adjs + nom_verbs
-        else:
-            r["keywords"] = uniq_keep_order(nouns + adjs + nom_verbs)
+            keywords = extract_zh(doc)
+            r["keywords"] = keywords
 
     write_jsonl(args.output, rows)
     print(f"✅ Done. Wrote {args.output} (rows={len(rows)})")

@@ -26,8 +26,8 @@ from pathlib import Path
 # ======================
 # Hard-coded file paths
 # ======================
-INPUT_PATH = "../draft/raw_results.json"
-OUTPUT_PATH = "../draft/results.jsonl"
+INPUT_PATH = "../results/raw_results.json"
+OUTPUT_PATH = "../results/results.jsonl"
 
 # Whether to keep empty/blank answers
 KEEP_EMPTY_ANSWERS = False
@@ -94,7 +94,7 @@ def main():
                         "model": model_name,
                         "attempt": attempt_no,
                         "answer": answer,
-                        "lang": detect_lang((problem or "") + "\n" + str(answer)),
+                        "lang": detect_lang(problem),
                     }
 
                     out.write(json.dumps(record, ensure_ascii=False) + "\n")
